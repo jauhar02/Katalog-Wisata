@@ -1,20 +1,4 @@
-// =========================
-// script.js - Versi rapih & aman
-// =========================
 
-/*
-  Struktur:
-  1) initAOS
-  2) heroParallax
-  3) mobileMenu
-  4) carouselModule
-  5) contactFormHandler
-  6) themeToggle
-  7) modalModule
-  8) bookingFormModule
-*/
-
-// Jalankan setelah DOM siap
 document.addEventListener('DOMContentLoaded', () => {
   initAOS();
   heroParallax();
@@ -27,42 +11,39 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* --------------------------
-  1) Inisialisasi AOS (jika tersedia)
+   1) Inisialisasi AOS (jika tersedia)
    -------------------------- */
 function initAOS() {
   if (typeof AOS !== 'undefined' && AOS && typeof AOS.init === 'function') {
-    AOS.init();
+    AOS.init({ once: true });
   }
 }
 
 /* --------------------------
-  2) Parallax hero (menggunakan rAF)
+   2) Parallax hero (menggunakan rAF)
    -------------------------- */
 function heroParallax() {
   const heroBg = document.querySelector('.hero-bg');
   if (!heroBg) return;
 
   let ticking = false;
-
   function onScroll() {
     if (!ticking) {
       window.requestAnimationFrame(() => {
         const scrollY = window.scrollY || window.pageYOffset || 0;
-        const value = scrollY * 0.3; // nilai kecil = halus
+        const value = scrollY * 0.3; // halus
         heroBg.style.transform = `translateY(${value}px)`;
         ticking = false;
       });
       ticking = true;
     }
   }
-
   window.addEventListener('scroll', onScroll, { passive: true });
-  // inisialisasi posisi
   onScroll();
 }
 
 /* --------------------------
-  3) Hamburger menu untuk mobile
+   3) Hamburger menu (mobile) + close when link clicked
    -------------------------- */
 function mobileMenu() {
   const hamburger = document.querySelector('.hamburger');
@@ -70,32 +51,44 @@ function mobileMenu() {
 
   if (!hamburger || !navMenu) return;
 
-  hamburger.addEventListener('click', () => {
+  function openCloseMenu() {
     const willOpen = !navMenu.classList.contains('active');
     navMenu.classList.toggle('active');
+    hamburger.classList.toggle('active');
     hamburger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  }
+
+  hamburger.addEventListener('click', openCloseMenu);
+
+  // Tutup menu saat klik link (lebih robust)
+  navMenu.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      if (navMenu.classList.contains('active')) {
+        navMenu.classList.remove('active');
+        hamburger.classList.remove('active');
+        hamburger.setAttribute('aria-expanded', 'false');
+      }
+    });
   });
 
-  // Tutup menu saat klik link (UX mobile)
-  navMenu.addEventListener('click', (e) => {
-    const link = e.target.closest('a');
-    if (link && navMenu.classList.contains('active')) {
+  // Optional: close on Escape key
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && navMenu.classList.contains('active')) {
       navMenu.classList.remove('active');
+      hamburger.classList.remove('active');
       hamburger.setAttribute('aria-expanded', 'false');
     }
   });
 }
 
 /* --------------------------
-  4) Carousel (prev/next + auto slide + pause on hover)
+   4) Carousel (prev/next + auto slide + pause on hover)
    -------------------------- */
 function carouselModule() {
   const carouselInner = document.querySelector('.carousel-inner');
   const carouselItems = document.querySelectorAll('.carousel-item');
-  // dukungan memilih tombol dengan atau tanpa .carousel-btn wrapper
   const prevBtn = document.querySelector('.carousel-btn.prev') || document.querySelector('.prev');
   const nextBtn = document.querySelector('.carousel-btn.next') || document.querySelector('.next');
-
   if (!carouselInner || carouselItems.length === 0) return;
 
   let currentIndex = 0;
@@ -105,7 +98,6 @@ function carouselModule() {
   function updateCarousel() {
     const translateX = -currentIndex * 100;
     carouselInner.style.transform = `translateX(${translateX}%)`;
-    // optional: update aria-live region or current indicator here
   }
 
   function goPrev() {
@@ -121,15 +113,11 @@ function carouselModule() {
   if (prevBtn) prevBtn.addEventListener('click', goPrev);
   if (nextBtn) nextBtn.addEventListener('click', goNext);
 
-  // Auto-slide (hanya jika >1 item)
   function startAutoSlide() {
     if (carouselItems.length <= 1) return;
     stopAutoSlide();
-    autoSlideTimer = setInterval(() => {
-      goNext();
-    }, intervalMs);
+    autoSlideTimer = setInterval(goNext, intervalMs);
   }
-
   function stopAutoSlide() {
     if (autoSlideTimer) {
       clearInterval(autoSlideTimer);
@@ -137,7 +125,6 @@ function carouselModule() {
     }
   }
 
-  // Pause saat hover atau fokus
   const carouselEl = document.querySelector('.carousel');
   if (carouselEl) {
     carouselEl.addEventListener('mouseenter', stopAutoSlide);
@@ -146,13 +133,18 @@ function carouselModule() {
     carouselEl.addEventListener('focusout', startAutoSlide);
   }
 
-  // Start
+  // start
   startAutoSlide();
   updateCarousel();
+
+  // resize handler (keamanan untuk memastikan transform tetap benar)
+  window.addEventListener('resize', () => {
+    updateCarousel();
+  });
 }
 
 /* --------------------------
-  5) Contact form simple handler
+   5) Contact form simple handler
    -------------------------- */
 function contactFormHandler() {
   const contactForm = document.querySelector('.contact-form');
@@ -160,22 +152,21 @@ function contactFormHandler() {
 
   contactForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    // TODO: ganti alert dengan notifikasi custom / kirim ke backend
     alert('Terima kasih! Pesan Anda telah dikirim.');
     contactForm.reset();
   });
 }
 
 /* --------------------------
-  6) Theme toggle (light/dark) + sinkronisasi preferensi
+   6) Theme toggle (light/dark)
    -------------------------- */
 function themeToggle() {
-  const storageKey = 'theme'; // 'light' atau 'dark'
+  const storageKey = 'theme';
   const prefersDarkQuery = '(prefers-color-scheme: dark)';
   const html = document.documentElement;
   const toggleBtn = document.getElementById('theme-toggle');
 
-  if (!html) return;
+  if (!html || !toggleBtn) return;
 
   function setToggleAppearance(btn, theme) {
     if (!btn) return;
@@ -195,8 +186,6 @@ function themeToggle() {
   html.setAttribute('data-theme', initialTheme);
   setToggleAppearance(toggleBtn, initialTheme);
 
-  if (!toggleBtn) return;
-
   toggleBtn.addEventListener('click', () => {
     const current = html.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
     const next = current === 'dark' ? 'light' : 'dark';
@@ -212,7 +201,7 @@ function themeToggle() {
     }
   });
 
-  // Sinkron saat preferensi OS berubah (jika user belum menyimpan)
+  // Sinkron preferensi OS jika user belum menyimpan pilihan
   if (window.matchMedia) {
     const mq = window.matchMedia(prefersDarkQuery);
     const listener = (e) => {
@@ -222,7 +211,6 @@ function themeToggle() {
         setToggleAppearance(toggleBtn, newTheme);
       }
     };
-
     if (typeof mq.addEventListener === 'function') {
       mq.addEventListener('change', listener);
     } else if (typeof mq.addListener === 'function') {
@@ -232,7 +220,7 @@ function themeToggle() {
 }
 
 /* --------------------------
-  7) Modal layanan (detail) dengan accessibility sederhana
+   7) Modal layanan (detail)
    -------------------------- */
 function modalModule() {
   const modal = document.getElementById('serviceModal');
@@ -250,12 +238,11 @@ function modalModule() {
   function openModal(data = {}) {
     if (modalTitle && data.title) modalTitle.textContent = data.title;
     if (modalDesc && data.desc) modalDesc.textContent = data.desc;
-    if (modalImg && data.img) modalImg.src = data.img;
-    if (modalLink && data.link) modalLink.href = data.link || '#';
+    if (modalImg && data.img) modalImg.src = data.img || '';
+    if (modalLink) modalLink.href = data.link || '#';
 
     modal.setAttribute('aria-hidden', 'false');
     modal.style.display = 'flex';
-
     modal._prevFocus = document.activeElement;
     closeBtn.focus();
     document.body.style.overflow = 'hidden';
@@ -270,39 +257,60 @@ function modalModule() {
     }
   }
 
+  // attach to service-card buttons
   document.querySelectorAll('.service-card .btn-secondary').forEach((btn) => {
     btn.addEventListener('click', (e) => {
+      // Allow link navigation if user wants (e.g., external page) — we intercept to show modal
       e.preventDefault();
-      const card = e.target.closest('.service-card');
+      const card = btn.closest('.service-card');
       if (!card) return;
 
       const title = card.querySelector('h3')?.textContent.trim() || '';
       const desc = card.querySelector('p')?.textContent.trim() || '';
       const img = card.querySelector('img')?.src || '';
-      const page = btn.dataset.page || `${title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/gi, '')}.html`;
+      // prefer explicit data-page attribute if provided
+      const dataPage = btn.dataset && btn.dataset.page ? btn.dataset.page : null;
+      // if dataPage looks like anchor (#...), keep it; otherwise treat as page link
+      const page = dataPage || (title ? `${title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/gi, '')}.html` : '#');
 
       openModal({
         title,
-        desc: desc + ' Detail lengkap: Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+        desc: desc + ' Detail lengkap: ' + 'Silakan klik Pesan Sekarang untuk melanjutkan pemesanan.',
         img,
         link: page,
       });
     });
   });
 
+  // close button
   closeBtn.addEventListener('click', closeModal);
 
+  // close if click outside content
   window.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
   });
 
+  // keyboard: Esc untuk tutup, Tab trap minimal (keep focus in modal)
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') {
       closeModal();
     }
+    if (e.key === 'Tab' && modal.getAttribute('aria-hidden') === 'false') {
+      // minimal focus trap: keep focus within modal-content
+      const focusable = modalContent.querySelectorAll('a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
   });
 }
-
 
 /* --------------------------
   8) Booking form dengan validasi sederhana
@@ -317,7 +325,6 @@ function bookingFormModule() {
     let isValid = true;
 
     for (const [key, value] of formData.entries()) {
-      // Trim untuk deteksi input kosong; untuk tanggal/nomor bisa ditingkatkan
       if (typeof value === 'string' && value.trim() === '') {
         isValid = false;
         break;
@@ -325,17 +332,16 @@ function bookingFormModule() {
     }
 
     if (!isValid) {
-      // Tampilkan pesan ringkas; bisa diganti dengan UI inline error
       alert('Mohon lengkapi semua field booking sebelum mengirim.');
       return;
     }
 
-    // Simpan / kirim ke server di sini (TODO)
+    // TODO: kirim ke backend atau simpan
     alert('Booking berhasil dikirim! Kami akan menghubungi Anda segera.');
     bookingForm.reset();
   });
 }
 
 /* --------------------------
-  End of file
+End of file
    -------------------------- */
