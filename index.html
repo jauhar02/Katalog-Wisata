@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Ahhartour - Temukan Perjalanan Terbaikmu</title>
 
     <!-- Fonts & AOS -->
@@ -16,6 +16,19 @@
     <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
     <!-- Ganti dengan file CSS final -->
     <link rel="stylesheet" href="style.css" />
+    <style>
+      /* Added inline minimal fix to ensure no horizontal overflow */
+      html, body {
+        overflow-x: hidden;
+        width: 100vw;
+      }
+      /* Ensure container does not expand beyond viewport */
+      .container {
+        max-width: 100vw;
+        box-sizing: border-box;
+        overflow-x: hidden;
+      }
+    </style>
 </head>
 <body>
     <!-- Header / Navbar -->
