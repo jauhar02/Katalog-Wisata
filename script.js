@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
   initAOS();
   heroParallax();
@@ -20,11 +19,11 @@ function initAOS() {
 }
 
 /* --------------------------
-   2) Parallax hero (menggunakan rAF)
+   2) Parallax hero (menggunakan rAF) - disable di mobile untuk performa
    -------------------------- */
 function heroParallax() {
   const heroBg = document.querySelector('.hero-bg');
-  if (!heroBg) return;
+  if (!heroBg || window.innerWidth <= 768) return; // disable di mobile
 
   let ticking = false;
   function onScroll() {
@@ -82,7 +81,7 @@ function mobileMenu() {
 }
 
 /* --------------------------
-   4) Carousel (prev/next + auto slide + pause on hover)
+   4) Carousel (prev/next + auto slide + pause on hover + swipe support)
    -------------------------- */
 function carouselModule() {
   const carouselInner = document.querySelector('.carousel-inner');
@@ -112,6 +111,21 @@ function carouselModule() {
 
   if (prevBtn) prevBtn.addEventListener('click', goPrev);
   if (nextBtn) nextBtn.addEventListener('click', goNext);
+
+  // Swipe support for mobile
+  let startX = 0;
+  let endX = 0;
+  carouselInner.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+  }, { passive: true });
+  carouselInner.addEventListener('touchend', (e) => {
+    endX = e.changedTouches[0].clientX;
+    const diff = startX - endX;
+    if (Math.abs(diff) > 50) { // threshold 50px
+      if (diff > 0) goNext(); // swipe left
+      else goPrev(); // swipe right
+    }
+  }, { passive: true });
 
   function startAutoSlide() {
     if (carouselItems.length <= 1) return;
@@ -313,7 +327,7 @@ function modalModule() {
 }
 
 /* --------------------------
-  8) Booking form dengan validasi sederhana
+  8) Booking form dengan validasi sederhana + feedback visual
    -------------------------- */
 function bookingFormModule() {
   const bookingForm = document.querySelector('.booking-form');
@@ -323,25 +337,69 @@ function bookingFormModule() {
     e.preventDefault();
     const formData = new FormData(bookingForm);
     let isValid = true;
+    let invalidFields = [];
 
+    // Validasi sederhana dengan regex untuk email dan phone
     for (const [key, value] of formData.entries()) {
-      if (typeof value === 'string' && value.trim() === '') {
+      const val = value.toString().trim();
+      if (val === '') {
         isValid = false;
-        break;
+        invalidFields.push(key);
+      } else if (key === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+        isValid = false;
+        invalidFields.push(key);
+      } else if (key === 'phone' && !/^\+?\d{10,15}$/.test(val)) {
+        isValid = false;
+        invalidFields.push(key);
       }
     }
 
+    // Feedback visual: highlight field kosong/salah
+    bookingForm.querySelectorAll('input, select, textarea').forEach(field => {
+      field.classList.remove('error');
+    });
+    invalidFields.forEach(key => {
+      const field = bookingForm.querySelector(`[name="${key}"]`);
+      if (field) field.classList.add('error');
+    });
+
     if (!isValid) {
-      alert('Mohon lengkapi semua field booking sebelum mengirim.');
+      // Toast notification alih-alih alert (lebih mobile-friendly)
+      showToast('Mohon lengkapi semua field dengan benar sebelum mengirim.');
       return;
     }
 
     // TODO: kirim ke backend atau simpan
-    alert('Booking berhasil dikirim! Kami akan menghubungi Anda segera.');
+    showToast('Booking berhasil dikirim! Kami akan menghubungi Anda segera.');
     bookingForm.reset();
   });
 }
 
-/* --------------------------
-End of file
-   -------------------------- */
+// Helper function untuk toast notification
+function showToast(message) {
+  let toast = document.querySelector('.toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary-color);
+      color: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      z-index: 1300;
+      opacity: 0;
+      transition: opacity 0.3s;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.style.opacity = '1';
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
