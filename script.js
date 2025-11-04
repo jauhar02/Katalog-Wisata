@@ -19,18 +19,24 @@ function initAOS() {
 }
 
 /* --------------------------
-   2) Parallax hero (menggunakan rAF) - disable di mobile untuk performa
+   2) Parallax hero (disable pada layar kecil untuk hindari overflow/scroll horizontal)
    -------------------------- */
 function heroParallax() {
   const heroBg = document.querySelector('.hero-bg');
-  if (!heroBg || window.innerWidth <= 768) return; // disable di mobile
+  if (!heroBg) return;
+
+  if (window.innerWidth <= 768) {
+    // Disable parallax untuk layar kecil agar tidak menyebabkan overflow horizontal
+    heroBg.style.transform = 'none';
+    return;
+  }
 
   let ticking = false;
   function onScroll() {
     if (!ticking) {
       window.requestAnimationFrame(() => {
         const scrollY = window.scrollY || window.pageYOffset || 0;
-        const value = scrollY * 0.3; // halus
+        const value = scrollY * 0.3; // efek parallax halus
         heroBg.style.transform = `translateY(${value}px)`;
         ticking = false;
       });
@@ -59,7 +65,7 @@ function mobileMenu() {
 
   hamburger.addEventListener('click', openCloseMenu);
 
-  // Tutup menu saat klik link (lebih robust)
+  // Tutup menu saat klik link
   navMenu.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', () => {
       if (navMenu.classList.contains('active')) {
@@ -70,7 +76,7 @@ function mobileMenu() {
     });
   });
 
-  // Optional: close on Escape key
+  // Tutup menu dengan escape
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && navMenu.classList.contains('active')) {
       navMenu.classList.remove('active');
@@ -112,18 +118,17 @@ function carouselModule() {
   if (prevBtn) prevBtn.addEventListener('click', goPrev);
   if (nextBtn) nextBtn.addEventListener('click', goNext);
 
-  // Swipe support for mobile
+  // Swipe support untuk mobile
   let startX = 0;
-  let endX = 0;
   carouselInner.addEventListener('touchstart', (e) => {
     startX = e.touches[0].clientX;
   }, { passive: true });
   carouselInner.addEventListener('touchend', (e) => {
-    endX = e.changedTouches[0].clientX;
+    const endX = e.changedTouches[0].clientX;
     const diff = startX - endX;
-    if (Math.abs(diff) > 50) { // threshold 50px
-      if (diff > 0) goNext(); // swipe left
-      else goPrev(); // swipe right
+    if (Math.abs(diff) > 50) { // threshold minimal swipe 50px
+      if (diff > 0) goNext(); // swipe kiri
+      else goPrev(); // swipe kanan
     }
   }, { passive: true });
 
@@ -147,18 +152,15 @@ function carouselModule() {
     carouselEl.addEventListener('focusout', startAutoSlide);
   }
 
-  // start
+  // Memulai carousel
   startAutoSlide();
   updateCarousel();
 
-  // resize handler (keamanan untuk memastikan transform tetap benar)
-  window.addEventListener('resize', () => {
-    updateCarousel();
-  });
+  window.addEventListener('resize', updateCarousel);
 }
 
 /* --------------------------
-   5) Contact form simple handler
+   5) Form kontak sederhana
    -------------------------- */
 function contactFormHandler() {
   const contactForm = document.querySelector('.contact-form');
@@ -172,7 +174,7 @@ function contactFormHandler() {
 }
 
 /* --------------------------
-   6) Theme toggle (light/dark)
+   6) Theme toggle (light/dark) dengan sinkronisasi preferensi OS
    -------------------------- */
 function themeToggle() {
   const storageKey = 'theme';
@@ -183,7 +185,6 @@ function themeToggle() {
   if (!html || !toggleBtn) return;
 
   function setToggleAppearance(btn, theme) {
-    if (!btn) return;
     btn.textContent = theme === 'dark' ? '☀️' : '🌙';
     btn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
     btn.title = theme === 'dark' ? 'Beralih ke mode terang' : 'Beralih ke mode gelap';
@@ -209,13 +210,12 @@ function themeToggle() {
   });
 
   toggleBtn.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+    if (["Enter", " ", "Spacebar"].includes(e.key)) {
       e.preventDefault();
       toggleBtn.click();
     }
   });
 
-  // Sinkron preferensi OS jika user belum menyimpan pilihan
   if (window.matchMedia) {
     const mq = window.matchMedia(prefersDarkQuery);
     const listener = (e) => {
@@ -225,16 +225,13 @@ function themeToggle() {
         setToggleAppearance(toggleBtn, newTheme);
       }
     };
-    if (typeof mq.addEventListener === 'function') {
-      mq.addEventListener('change', listener);
-    } else if (typeof mq.addListener === 'function') {
-      mq.addListener(listener);
-    }
+    if (typeof mq.addEventListener === 'function') mq.addEventListener('change', listener);
+    else if (typeof mq.addListener === 'function') mq.addListener(listener);
   }
 }
 
 /* --------------------------
-   7) Modal layanan (detail)
+   7) Modal detail layanan
    -------------------------- */
 function modalModule() {
   const modal = document.getElementById('serviceModal');
@@ -271,10 +268,9 @@ function modalModule() {
     }
   }
 
-  // attach to service-card buttons
+  // Buka modal saat tombol service-card diklik
   document.querySelectorAll('.service-card .btn-secondary').forEach((btn) => {
     btn.addEventListener('click', (e) => {
-      // Allow link navigation if user wants (e.g., external page) — we intercept to show modal
       e.preventDefault();
       const card = btn.closest('.service-card');
       if (!card) return;
@@ -282,35 +278,28 @@ function modalModule() {
       const title = card.querySelector('h3')?.textContent.trim() || '';
       const desc = card.querySelector('p')?.textContent.trim() || '';
       const img = card.querySelector('img')?.src || '';
-      // prefer explicit data-page attribute if provided
       const dataPage = btn.dataset && btn.dataset.page ? btn.dataset.page : null;
-      // if dataPage looks like anchor (#...), keep it; otherwise treat as page link
       const page = dataPage || (title ? `${title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/gi, '')}.html` : '#');
 
       openModal({
         title,
-        desc: desc + ' Detail lengkap: ' + 'Silakan klik Pesan Sekarang untuk melanjutkan pemesanan.',
+        desc: desc + ' Detail lengkap: Silakan klik Pesan Sekarang untuk melanjutkan pemesanan.',
         img,
         link: page,
       });
     });
   });
 
-  // close button
   closeBtn.addEventListener('click', closeModal);
-
-  // close if click outside content
   window.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
   });
 
-  // keyboard: Esc untuk tutup, Tab trap minimal (keep focus in modal)
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') {
-      closeModal();
-    }
+    if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') closeModal();
+
+    // Fokus trap modal
     if (e.key === 'Tab' && modal.getAttribute('aria-hidden') === 'false') {
-      // minimal focus trap: keep focus within modal-content
       const focusable = modalContent.querySelectorAll('a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
       if (focusable.length === 0) return;
       const first = focusable[0];
@@ -327,22 +316,22 @@ function modalModule() {
 }
 
 /* --------------------------
-  8) Booking form dengan validasi sederhana + feedback visual
-   -------------------------- */
+  8) Booking form dengan validasi sederhana dan feedback toast
+  -------------------------- */
 function bookingFormModule() {
   const bookingForm = document.querySelector('.booking-form');
   if (!bookingForm) return;
 
   bookingForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const formData = new FormData(bookingForm);
+
     let isValid = true;
     let invalidFields = [];
 
-    // Validasi sederhana dengan regex untuk email dan phone
+    const formData = new FormData(bookingForm);
     for (const [key, value] of formData.entries()) {
-      const val = value.toString().trim();
-      if (val === '') {
+      const val = value.trim();
+      if (!val) {
         isValid = false;
         invalidFields.push(key);
       } else if (key === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
@@ -354,28 +343,26 @@ function bookingFormModule() {
       }
     }
 
-    // Feedback visual: highlight field kosong/salah
-    bookingForm.querySelectorAll('input, select, textarea').forEach(field => {
-      field.classList.remove('error');
-    });
+    // Hilangkan class error dulu
+    bookingForm.querySelectorAll('input, select, textarea').forEach(input => input.classList.remove('error'));
+
+    // Tandai field error
     invalidFields.forEach(key => {
-      const field = bookingForm.querySelector(`[name="${key}"]`);
-      if (field) field.classList.add('error');
+      const input = bookingForm.querySelector(`[name="${key}"]`);
+      if (input) input.classList.add('error');
     });
 
     if (!isValid) {
-      // Toast notification alih-alih alert (lebih mobile-friendly)
       showToast('Mohon lengkapi semua field dengan benar sebelum mengirim.');
       return;
     }
 
-    // TODO: kirim ke backend atau simpan
     showToast('Booking berhasil dikirim! Kami akan menghubungi Anda segera.');
     bookingForm.reset();
   });
 }
 
-// Helper function untuk toast notification
+// Fungsi toast notifikasi kecil
 function showToast(message) {
   let toast = document.querySelector('.toast');
   if (!toast) {
@@ -388,18 +375,22 @@ function showToast(message) {
       transform: translateX(-50%);
       background: var(--primary-color);
       color: #fff;
-      padding: 1rem;
+      padding: 1rem 1.5rem;
       border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
       z-index: 1300;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
     `;
     document.body.appendChild(toast);
   }
+
   toast.textContent = message;
   toast.style.opacity = '1';
+
   setTimeout(() => {
     toast.style.opacity = '0';
-    setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
