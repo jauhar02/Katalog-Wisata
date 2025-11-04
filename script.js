@@ -19,11 +19,11 @@ function initAOS() {
 }
 
 /* --------------------------
-   2) Parallax hero (menggunakan rAF) - disable di mobile untuk performa
+   2) Parallax hero (menggunakan rAF)
    -------------------------- */
 function heroParallax() {
   const heroBg = document.querySelector('.hero-bg');
-  if (!heroBg || window.innerWidth <= 768) return; // disable di mobile
+  if (!heroBg) return;
 
   let ticking = false;
   function onScroll() {
@@ -81,7 +81,7 @@ function mobileMenu() {
 }
 
 /* --------------------------
-   4) Carousel (prev/next + auto slide + pause on hover + swipe support)
+   4) Carousel (prev/next + auto slide + pause on hover)
    -------------------------- */
 function carouselModule() {
   const carouselInner = document.querySelector('.carousel-inner');
@@ -111,21 +111,6 @@ function carouselModule() {
 
   if (prevBtn) prevBtn.addEventListener('click', goPrev);
   if (nextBtn) nextBtn.addEventListener('click', goNext);
-
-  // Swipe support for mobile
-  let startX = 0;
-  let endX = 0;
-  carouselInner.addEventListener('touchstart', (e) => {
-    startX = e.touches[0].clientX;
-  }, { passive: true });
-  carouselInner.addEventListener('touchend', (e) => {
-    endX = e.changedTouches[0].clientX;
-    const diff = startX - endX;
-    if (Math.abs(diff) > 50) { // threshold 50px
-      if (diff > 0) goNext(); // swipe left
-      else goPrev(); // swipe right
-    }
-  }, { passive: true });
 
   function startAutoSlide() {
     if (carouselItems.length <= 1) return;
@@ -327,7 +312,7 @@ function modalModule() {
 }
 
 /* --------------------------
-  8) Booking form dengan validasi sederhana + feedback visual
+  8) Booking form dengan validasi sederhana
    -------------------------- */
 function bookingFormModule() {
   const bookingForm = document.querySelector('.booking-form');
@@ -337,69 +322,21 @@ function bookingFormModule() {
     e.preventDefault();
     const formData = new FormData(bookingForm);
     let isValid = true;
-    let invalidFields = [];
 
-    // Validasi sederhana dengan regex untuk email dan phone
     for (const [key, value] of formData.entries()) {
-      const val = value.toString().trim();
-      if (val === '') {
+      if (typeof value === 'string' && value.trim() === '') {
         isValid = false;
-        invalidFields.push(key);
-      } else if (key === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
-        isValid = false;
-        invalidFields.push(key);
-      } else if (key === 'phone' && !/^\+?\d{10,15}$/.test(val)) {
-        isValid = false;
-        invalidFields.push(key);
+        break;
       }
     }
 
-    // Feedback visual: highlight field kosong/salah
-    bookingForm.querySelectorAll('input, select, textarea').forEach(field => {
-      field.classList.remove('error');
-    });
-    invalidFields.forEach(key => {
-      const field = bookingForm.querySelector(`[name="${key}"]`);
-      if (field) field.classList.add('error');
-    });
-
     if (!isValid) {
-      // Toast notification alih-alih alert (lebih mobile-friendly)
-      showToast('Mohon lengkapi semua field dengan benar sebelum mengirim.');
+      alert('Mohon lengkapi semua field booking sebelum mengirim.');
       return;
     }
 
     // TODO: kirim ke backend atau simpan
-    showToast('Booking berhasil dikirim! Kami akan menghubungi Anda segera.');
+    alert('Booking berhasil dikirim! Kami akan menghubungi Anda segera.');
     bookingForm.reset();
   });
-}
-
-// Helper function untuk toast notification
-function showToast(message) {
-  let toast = document.querySelector('.toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--primary-color);
-      color: #fff;
-      padding: 1rem;
-      border-radius: 8px;
-      z-index: 1300;
-      opacity: 0;
-      transition: opacity 0.3s;
-    `;
-    document.body.appendChild(toast);
-  }
-  toast.textContent = message;
-  toast.style.opacity = '1';
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
 }
